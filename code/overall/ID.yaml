@@ -23,7 +23,7 @@ optim_args: {
 }
 
 # eval settings
-eval_batch_size: 1024
+eval_batch_size: 16
 topk: [5,10,50,200]
 metrics: ['Recall', 'NDCG']
 valid_metric: NDCG@200

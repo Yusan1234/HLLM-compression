@@ -78,7 +78,7 @@ def bulid_dataloader(config, dataload):
     num_workers = 11
     rank = torch.distributed.get_rank()
     seed = torch.initial_seed()
-
+    config['eval_batch_size'] = 16
     init_fn = partial(
         worker_init_fn, num_workers=num_workers, rank=rank,
         seed=seed

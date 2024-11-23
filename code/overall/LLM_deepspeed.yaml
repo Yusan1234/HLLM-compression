@@ -35,7 +35,7 @@ scheduler_args: {
 }
 
 # eval settings
-eval_batch_size: 256
+eval_batch_size: 16
 topk: [5,10,50,200]
 metrics: ['Recall', 'NDCG']
 valid_metric: NDCG@200
@@ -44,5 +44,5 @@ eval_step: 1
 stopping_step: 5
 
 strategy: deepspeed
-precision: bf16-mixed
+precision: 16
 stage: 2

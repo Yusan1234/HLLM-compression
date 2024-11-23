@@ -9,7 +9,7 @@ show_progress: True
 log_wandb: False
 wandb_project: 'REC'
 MAX_ITEM_LIST_LENGTH: 50
-MAX_TEXT_LENGTH: 64
+MAX_TEXT_LENGTH: 16    #64
 
 data_path: ../dataset/                       # dataset path
 dataset: Pixel200K                        # dataset name
@@ -34,7 +34,7 @@ scheduler_args: {
 }
 
 # eval settings
-eval_batch_size: 256
+eval_batch_size: 16
 topk: [5,10,50,200]
 metrics: ['Recall', 'NDCG']
 valid_metric: NDCG@200
@@ -43,4 +43,4 @@ eval_step: 1
 stopping_step: 5
 
 strategy: ddp
-precision: bf16-mixed
+precision: 16
