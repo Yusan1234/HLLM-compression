@@ -31,6 +31,7 @@ from REC.utils.lr_scheduler import *
 import lightning as L
 from lightning.fabric.strategies import DeepSpeedStrategy, DDPStrategy
 
+from pynvml import nvmlInit, nvmlDeviceGetHandleByIndex, nvmlDeviceGetUtilizationRates, nvmlShutdown
 
 class Trainer(object):
     def __init__(self, config, model):
@@ -471,7 +472,13 @@ class Trainer(object):
             self.lite.load(checkpoint_file, state)
             message_output = 'Loading model structure and parameters from {}'.format(checkpoint_file)
             self.logger.info(message_output)
-
+        nvmlInit()
+        gpu_handles = [nvmlDeviceGetHandleByIndex(i) for i in range(4)] 
+        gpu_usage_stats = [[] for _ in range(4)] 
+        total_inference_time = 0
+        gpu_usage_stats = []
+        latencies = []
+        eval_start_time = t.time()
         with torch.no_grad():
             self.model.eval()
             eval_func = self._full_sort_batch_eval
@@ -491,16 +498,43 @@ class Trainer(object):
             for batch_idx, batched_data in enumerate(iter_data):
                 start_time = fwd_time
                 data_time = t.time()
+                for i, handle in enumerate(gpu_handles):
+                    utilization = nvmlDeviceGetUtilizationRates(handle)
+                    gpu_usage_stats[i].append(utilization.gpu) 
                 scores, positive_u, positive_i = eval_func(batched_data)
                 fwd_time = t.time()
 
                 if show_progress and self.rank == 0:
-                    iter_data.set_postfix_str(f"data: {data_time-start_time:.3f} fwd: {fwd_time-data_time:.3f}", refresh=False)
+                    avg_gpu_util = [sum(util) / len(util) if util else 0 for util in gpu_usage_stats]
+                    avg_util_str = ", ".join(f"GPU{i}: {util:.2f}%" for i, util in enumerate(avg_gpu_util))
+                    iter_data.set_postfix_str(
+                        f"latency: {latency:.3f}s, avg GPU util: {avg_util_str}", refresh=False
+                    )
                 self.eval_collector.eval_batch_collect(scores, positive_u, positive_i)
+                latency = fwd_time - data_time
+                latencies.append(latency)
+                total_inference_time += latency
+            eval_end_time = t.time()
+            # Calculate average GPU utilization for each GPU
+            average_gpu_utilizations = [
+                sum(util) / len(util) if util else 0 for util in gpu_usage_stats
+            ]
+            # Log average utilization for all GPUs
+            for i, avg_util in enumerate(average_gpu_utilizations):
+                self.logger.info(f"Average GPU {i} utilization: {avg_util:.2f}%")
+            avg_latency = sum(latencies) / len(latencies)
+            avg_gpu_util = sum(gpu_usage_stats) / len(gpu_usage_stats)
+            
             num_total_examples = len(eval_data.sampler.dataset)
             struct = self.eval_collector.get_data_struct()
             result = self.evaluator.evaluate(struct)
-
+            nvmlShutdown()
+            # Log the performance metrics
+            self.logger.info(f"Total inference time: {total_inference_time:.2f}s")
+            self.logger.info(f"Average latency per batch: {avg_latency:.2f}s")
+            self.logger.info(f"Average GPU utilization: {avg_gpu_util:.2f}%")
+            self.logger.info(f"Overall evaluation time: {eval_end_time - start_time:.2f}s")
+            
             metric_decimal_place = 5 if self.config['metric_decimal_place'] == None else self.config['metric_decimal_place']
             for k, v in result.items():
                 result_cpu = self.distributed_concat(torch.tensor([v]).to(self.device), num_total_examples).cpu()
