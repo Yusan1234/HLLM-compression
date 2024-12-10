@@ -25,7 +25,7 @@ from REC.data.dataset.collate_fn import customize_rmpad_collate
 from torch.utils.data import DataLoader
 from REC.evaluator import Evaluator, Collector
 from REC.utils import ensure_dir, get_local_time, early_stopping, calculate_valid_score, dict2str, \
-    get_tensorboard, set_color, get_gpu_usage, WandbLogger
+    get_tensorboard, set_color, get_gpu_usage, WandbLogger, apply_pruning
 from REC.utils.lr_scheduler import *
 
 import lightning as L

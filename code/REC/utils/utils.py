@@ -191,3 +191,36 @@ def get_gpu_usage(device=None):
     total = torch.cuda.get_device_properties(device).total_memory / 1024 ** 3
 
     return '{:.2f} G/{:.2f} G'.format(reserved, total)
+
+from torch.nn.utils import prune
+from torch.nn.utils.prune import L1Unstructured
+
+def apply_pruning(model, pruning_amount=0.2, logger=None):
+    """
+    Apply L1 unstructured pruning to Linear and Conv2D layers in the model.
+
+    Args:
+        model (torch.nn.Module): The PyTorch model to prune.
+        pruning_amount (float): The proportion of weights to prune (default: 0.2).
+        logger (logging.Logger, optional): Logger for output messages (default: None).
+
+    Returns:
+        torch.nn.Module: The pruned model.
+    """
+    if logger:
+        logger.info(f"Applying L1 unstructured pruning with amount {pruning_amount}...")
+    
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Linear) or isinstance(module, torch.nn.Conv2d):
+            # Apply L1 unstructured pruning
+            prune.l1_unstructured(module, name='weight', amount=pruning_amount)
+            # Remove the pruning reparameterization
+            prune.remove(module, 'weight')
+            if logger:
+                sparsity = (module.weight == 0).sum().item() / module.weight.numel()
+                logger.info(f"Layer {name} sparsity after pruning: {sparsity:.2%}")
+    
+    if logger:
+        logger.info("Pruning applied successfully.")
+    
+    return model

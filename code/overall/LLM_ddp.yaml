@@ -42,5 +42,8 @@ metric_decimal_place: 7
 eval_step: 1 
 stopping_step: 5
 
+pruning: true
+pruning_rate: 0.5
+
 strategy: ddp
 precision: 16

@@ -14,7 +14,7 @@ import torch
 import json
 from REC.data import *
 from REC.config import Config
-from REC.utils import init_logger, get_model, init_seed, set_color
+from REC.utils import init_logger, get_model, init_seed, set_color, apply_pruning
 from REC.trainer import Trainer
 import torch.distributed as dist
 
@@ -101,6 +101,8 @@ def run_loop(local_rank, config_file=None, saved=True, extra_args=[]):
         ckpt = torch.load(ckpt_path, map_location='cpu')
         logger.info(f'Eval only model load from {ckpt_path}')
         msg = trainer.model.load_state_dict(ckpt, False)
+        if config['pruning']:
+            apply_pruning(trainer.model, sparsity=config.get('pruning_sparsity', 0.5))
         logger.info(f'{msg.unexpected_keys = }')
         logger.info(f'{msg.missing_keys = }')
         test_result = trainer.evaluate(test_loader, load_best_model=False, show_progress=config['show_progress'], init_model=True)
