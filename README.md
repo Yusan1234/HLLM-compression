@@ -134,6 +134,62 @@ deepspeed
  ('transformer-engine', 'transformer-engine-float16', '16-true', '16-mixed', 'bf16-true', 'bf16-mixed', '32-true', '64-true', 64, 32, 16, '64', '32', '16', 'bf16')Precision 'fp16' is invalid. Allowed precision values: ('transformer-engine', 'transformer-engine-float16', '16-true', '16-mixed', 'bf16-true', 'bf16-mixed', '32-true', '64-true', 64, 32, 16, '64', '32', '16', 'bf16')Precision 'fp16' is invalid. Allowed precision values: ('transformer-engine', 'transformer-engine-float16', '16-true', '16-mixed', 'bf16-true', 'bf16-mixed', '32-true', '64-true', 64, 32, 16, '64', '32', '16', 'bf16')
 ```
 
+## Setup and Tutorial
+
+```
+(Honestly it takes longer time to set up on the class' system, datasize, customized container, etc)
+Repo: https://github.com/Yusan1234/HLLM-compression
+
+Resource: https://sites.google.com/nyu.edu/nyu-hpc/hpc-systems/greene/software/singularity-with-miniconda?authuser=0
+
+- Use resources from class for container
+
+container image: /scratch/work/public/overlay-fs-ext3/overlay-50G-10M.ext3.gz .
+
+cuda image: /scratch/work/public/singularity/cuda12.2.2-cudnn8.9.4-devel-ubuntu22.04.3.sif
+
+- launch and run container (—nv for nvidia env)
+
+singularity exec --nv --overlay /scratch/$USER/{path}/ {overlay-50G-10M.ext3 | *.ext3}/scratch/work/public/singularity/cuda12.2.2-cudnn8.9.4-devel-ubuntu22.04.3.sif /bin/bash
+
+- submit interactive job (you can change time and wait time)
+
+srun --wait=500 --account=csci_ga_3033_091-2024fa --partition=n1c24m128-v100-4 --gres=gpu:4 --time=02:00:00 --pty /bin/bash
+
+- Conda inside a container
+
+For pytorch u need to run this inside container conda environment
+
+
+pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
+
+pip install -r requirements.txt
+
+
+- Dataset
+    - Download Amazon preprocessed data from the original repo
+    - Due to sys limit, we cannot use whole of data so i used random sampling for amazon_books.csv (books) and filtered out user info with valid book ids
+- Model
+    - https://huggingface.co/ByteDance/HLLM
+    - u can download pretrained model from here
+    - https://huggingface.co/TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T
+    - u can download anyother config files from here (except for pytorch_model.bin file)
+    - store them into check_points folder
+- Config
+    - code/run.sh, HLLM/deepspeed related configs, be careful to use these configs on V100 making corruption many times
+- (Caution)
+    - sometimes container image was corrupted by sudden kill jobs due to unknown error, recommend you to copy the container image once you finish to install everything we need
+    - 
+
+- Run
+    - ./run.sh (in code folder)
+    - or you can submit job squeues
+- Config
+    - In run.sh, you can adjust batchsize.
+    - In overall/deep_speed_HLLM.yaml, you can adjust which precision you use
+```
+
+
 ## Citation
 
 If our work has been of assistance to your work, feel free to give us a star ⭐ or cite us using :  
