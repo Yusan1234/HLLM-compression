@@ -184,6 +184,7 @@ pip install -r requirements.txt
 - Run
     - ./run.sh (in code folder)
     - or you can submit job squeues
+    - or use pruning.ipynb on the repo
 - Config
     - In run.sh, you can adjust batchsize.
     - In overall/deep_speed_HLLM.yaml, you can adjust which precision you use
